@@ -97,6 +97,9 @@ func (d MessageDispatcher) DispatchSubmessages(ctx sdk.Context, contractAddr sdk
 		var err error
 		var events []sdk.Event
 		var data [][]byte
+
+		// The stack trace tells us that at this point, our CustomMessenger defined in canine-chain/wasmbinding/message_plugin.go
+		// is called here
 		if limitGas {
 			events, data, err = d.dispatchMsgWithGasLimit(subCtx, contractAddr, ibcPort, msg.Msg, *msg.GasLimit, sender)
 		} else {
