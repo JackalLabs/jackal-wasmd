@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/CosmWasm/wasmd/x/wasm/ioutils"
-	"github.com/CosmWasm/wasmd/x/wasm/types"
+	"github.com/JackalLabs/jackal-wasmd/x/wasm/ioutils"
+	"github.com/JackalLabs/jackal-wasmd/x/wasm/types"
 )
 
 func TestParseAccessConfigFlags(t *testing.T) {

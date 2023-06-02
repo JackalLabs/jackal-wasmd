@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/CosmWasm/wasmd/x/wasm/ioutils"
+	"github.com/JackalLabs/jackal-wasmd/x/wasm/ioutils"
 
 	"github.com/docker/distribution/reference"
 
@@ -23,7 +23,7 @@ import (
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
 
-	"github.com/CosmWasm/wasmd/x/wasm/types"
+	"github.com/JackalLabs/jackal-wasmd/x/wasm/types"
 )
 
 func ProposalStoreCodeCmd() *cobra.Command {

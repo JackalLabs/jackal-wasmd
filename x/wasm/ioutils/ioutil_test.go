@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/tendermint/libs/rand"
 
-	"github.com/CosmWasm/wasmd/x/wasm/types"
+	"github.com/JackalLabs/jackal-wasmd/x/wasm/types"
 )
 
 func TestUncompress(t *testing.T) {

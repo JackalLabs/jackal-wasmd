@@ -14,8 +14,8 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/rand"
 
-	"github.com/CosmWasm/wasmd/x/wasm/keeper"
-	"github.com/CosmWasm/wasmd/x/wasm/types"
+	"github.com/JackalLabs/jackal-wasmd/x/wasm/keeper"
+	"github.com/JackalLabs/jackal-wasmd/x/wasm/types"
 )
 
 func TestOnRecvPacket(t *testing.T) {

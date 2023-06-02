@@ -11,7 +11,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
-	"github.com/CosmWasm/wasmd/x/wasm/types"
+	"github.com/JackalLabs/jackal-wasmd/x/wasm/types"
 )
 
 var _ types.IBCContractKeeper = (*Keeper)(nil)

@@ -1,4 +1,4 @@
-module github.com/CosmWasm/wasmd
+module github.com/JackalLabs/jackal-wasmd
 
 go 1.19
 

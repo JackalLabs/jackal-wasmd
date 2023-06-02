@@ -34,9 +34,9 @@ import (
 	tmtypes "github.com/tendermint/tendermint/types"
 	tmversion "github.com/tendermint/tendermint/version"
 
-	"github.com/CosmWasm/wasmd/app"
-	"github.com/CosmWasm/wasmd/app/params"
-	"github.com/CosmWasm/wasmd/x/wasm"
+	"github.com/JackalLabs/jackal-wasmd/app"
+	"github.com/JackalLabs/jackal-wasmd/app/params"
+	"github.com/JackalLabs/jackal-wasmd/x/wasm"
 )
 
 var MaxAccounts = 10
