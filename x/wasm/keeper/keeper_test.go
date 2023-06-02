@@ -1926,7 +1926,8 @@ func TestNewDefaultWasmVMContractResponseHandler(t *testing.T) {
 			em := sdk.NewEventManager()
 
 			// when
-			gotData, gotErr := d.Handle(sdk.Context{}.WithEventManager(em), RandomAccountAddress(t), "ibc-port", msgs, spec.srcData)
+			// Still runs with a sub sender :)
+			gotData, gotErr := d.Handle(sdk.Context{}.WithEventManager(em), RandomAccountAddress(t), "ibc-port", msgs, spec.srcData, fmt.Sprintf("None"))
 			if spec.expErr {
 				require.Error(t, gotErr)
 				return
