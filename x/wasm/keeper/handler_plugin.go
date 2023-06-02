@@ -61,7 +61,8 @@ func NewSDKMessageHandler(router MessageRouter, encoders msgEncoder) SDKMessageH
 	}
 }
 
-func (h SDKMessageHandler) DispatchMsg(ctx sdk.Context, contractAddr sdk.AccAddress, contractIBCPortID string, msg wasmvmtypes.CosmosMsg) (events []sdk.Event, data [][]byte, err error) {
+// Take a sender argument to satisfy the interface. We don't need it here for now
+func (h SDKMessageHandler) DispatchMsg(ctx sdk.Context, contractAddr sdk.AccAddress, contractIBCPortID string, msg wasmvmtypes.CosmosMsg, sender string) (events []sdk.Event, data [][]byte, err error) {
 	sdkMsgs, err := h.encoders.Encode(ctx, contractAddr, contractIBCPortID, msg)
 	if err != nil {
 		return nil, nil, err
@@ -127,9 +128,9 @@ func NewMessageHandlerChain(first Messenger, others ...Messenger) *MessageHandle
 // order to find the right one to process given message. If a handler cannot
 // process given message (returns ErrUnknownMsg), its result is ignored and the
 // next handler is executed.
-func (m MessageHandlerChain) DispatchMsg(ctx sdk.Context, contractAddr sdk.AccAddress, contractIBCPortID string, msg wasmvmtypes.CosmosMsg) ([]sdk.Event, [][]byte, error) {
+func (m MessageHandlerChain) DispatchMsg(ctx sdk.Context, contractAddr sdk.AccAddress, contractIBCPortID string, msg wasmvmtypes.CosmosMsg, sender string) ([]sdk.Event, [][]byte, error) {
 	for _, h := range m.handlers {
-		events, data, err := h.DispatchMsg(ctx, contractAddr, contractIBCPortID, msg)
+		events, data, err := h.DispatchMsg(ctx, contractAddr, contractIBCPortID, msg, sender)
 		switch {
 		case err == nil:
 			return events, data, nil
@@ -159,7 +160,8 @@ func NewIBCRawPacketHandler(ics4Wrapper types.ICS4Wrapper, channelKeeper types.C
 }
 
 // DispatchMsg publishes a raw IBC packet onto the channel.
-func (h IBCRawPacketHandler) DispatchMsg(ctx sdk.Context, _ sdk.AccAddress, contractIBCPortID string, msg wasmvmtypes.CosmosMsg) ([]sdk.Event, [][]byte, error) {
+// Take a sender argument to satisfy the interface. We don't need it here for now
+func (h IBCRawPacketHandler) DispatchMsg(ctx sdk.Context, _ sdk.AccAddress, contractIBCPortID string, msg wasmvmtypes.CosmosMsg, sender string) ([]sdk.Event, [][]byte, error) {
 	if msg.IBC == nil || msg.IBC.SendPacket == nil {
 		return nil, nil, types.ErrUnknownMsg
 	}
@@ -213,16 +215,17 @@ func (h IBCRawPacketHandler) DispatchMsg(ctx sdk.Context, _ sdk.AccAddress, cont
 var _ Messenger = MessageHandlerFunc(nil)
 
 // MessageHandlerFunc is a helper to construct a function based message handler.
-type MessageHandlerFunc func(ctx sdk.Context, contractAddr sdk.AccAddress, contractIBCPortID string, msg wasmvmtypes.CosmosMsg) (events []sdk.Event, data [][]byte, err error)
+type MessageHandlerFunc func(ctx sdk.Context, contractAddr sdk.AccAddress, contractIBCPortID string, msg wasmvmtypes.CosmosMsg, sender string) (events []sdk.Event, data [][]byte, err error)
 
 // DispatchMsg delegates dispatching of provided message into the MessageHandlerFunc.
-func (m MessageHandlerFunc) DispatchMsg(ctx sdk.Context, contractAddr sdk.AccAddress, contractIBCPortID string, msg wasmvmtypes.CosmosMsg) (events []sdk.Event, data [][]byte, err error) {
-	return m(ctx, contractAddr, contractIBCPortID, msg)
+func (m MessageHandlerFunc) DispatchMsg(ctx sdk.Context, contractAddr sdk.AccAddress, contractIBCPortID string, msg wasmvmtypes.CosmosMsg, sender string) (events []sdk.Event, data [][]byte, err error) {
+	return m(ctx, contractAddr, contractIBCPortID, msg, sender)
 }
 
 // NewBurnCoinMessageHandler handles wasmvm.BurnMsg messages
+// Take a sender argument to satisfy the interface. We don't need it here for now
 func NewBurnCoinMessageHandler(burner types.Burner) MessageHandlerFunc {
-	return func(ctx sdk.Context, contractAddr sdk.AccAddress, _ string, msg wasmvmtypes.CosmosMsg) (events []sdk.Event, data [][]byte, err error) {
+	return func(ctx sdk.Context, contractAddr sdk.AccAddress, _ string, msg wasmvmtypes.CosmosMsg, sender string) (events []sdk.Event, data [][]byte, err error) {
 		if msg.Bank != nil && msg.Bank.Burn != nil {
 			coins, err := ConvertWasmCoinsToSdkCoins(msg.Bank.Burn.Amount)
 			if err != nil {
