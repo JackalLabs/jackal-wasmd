@@ -73,6 +73,7 @@ type WasmVMResponseHandler interface {
 		ibcPort string,
 		messages []wasmvmtypes.SubMsg,
 		origRspData []byte,
+		sender string, // canine-chain wasmbindings needs this argument
 	) ([]byte, error)
 }
 
@@ -375,6 +376,10 @@ func (k Keeper) execute(ctx sdk.Context, contractAddress sdk.AccAddress, caller 
 		types.EventTypeExecute,
 		sdk.NewAttribute(types.AttributeKeyContractAddr, contractAddress.String()),
 	))
+
+	// We know the caller's signature will be verified by our chain's ante handler
+	// so we pass it into handleContractResponse() so our custom msgDispatcher defined in
+	// canine-chain/wasmbinding can do further verification checks
 
 	sender := caller.String()
 
@@ -974,7 +979,8 @@ func (k *Keeper) handleContractResponse(
 		}
 		ctx.EventManager().EmitEvents(customEvents)
 	}
-	return k.wasmVMResponseHandler.Handle(ctx, contractAddr, ibcPort, msgs, data)
+	// We pass the sender to the wasmVMResponseHandler to then pass it to wasm.keeper.MessageDispatcher
+	return k.wasmVMResponseHandler.Handle(ctx, contractAddr, ibcPort, msgs, data, sender)
 }
 
 func (k Keeper) runtimeGasForContract(ctx sdk.Context) uint64 {
@@ -1183,7 +1189,7 @@ func NewDefaultWasmVMContractResponseHandler(md msgDispatcher) *DefaultWasmVMCon
 }
 
 // Handle processes the data returned by a contract invocation.
-func (h DefaultWasmVMContractResponseHandler) Handle(ctx sdk.Context, contractAddr sdk.AccAddress, ibcPort string, messages []wasmvmtypes.SubMsg, origRspData []byte) ([]byte, error) {
+func (h DefaultWasmVMContractResponseHandler) Handle(ctx sdk.Context, contractAddr sdk.AccAddress, ibcPort string, messages []wasmvmtypes.SubMsg, origRspData []byte, sender string) ([]byte, error) {
 	result := origRspData
 	switch rsp, err := h.md.DispatchSubmessages(ctx, contractAddr, ibcPort, messages); {
 	case err != nil:
