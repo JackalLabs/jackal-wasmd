@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"fmt"
 	"time"
 
 	channeltypes "github.com/cosmos/ibc-go/v4/modules/core/04-channel/types"
@@ -145,7 +146,8 @@ func (k Keeper) OnRecvPacket(
 		}, nil
 	}
 	// note submessage reply results can overwrite the `Acknowledgement` data
-	data, err := k.handleContractResponse(ctx, contractAddr, contractInfo.IBCPortID, res.Ok.Messages, res.Ok.Attributes, res.Ok.Acknowledgement, res.Ok.Events)
+	// canine-chain does not need sender argument here as at this commit
+	data, err := k.handleContractResponse(ctx, contractAddr, contractInfo.IBCPortID, res.Ok.Messages, res.Ok.Attributes, res.Ok.Acknowledgement, res.Ok.Events, fmt.Sprintf("None"))
 	if err != nil {
 		// submessage errors result in error ACK with state reverted. Error message is redacted
 		return nil, err
@@ -225,6 +227,7 @@ func (k Keeper) OnTimeoutPacket(
 }
 
 func (k Keeper) handleIBCBasicContractResponse(ctx sdk.Context, addr sdk.AccAddress, id string, res *wasmvmtypes.IBCBasicResponse) error {
-	_, err := k.handleContractResponse(ctx, addr, id, res.Messages, res.Attributes, nil, res.Events)
+	// canine-chain does not need sender argument here as at this commit
+	_, err := k.handleContractResponse(ctx, addr, id, res.Messages, res.Attributes, nil, res.Events, fmt.Sprintf("None"))
 	return err
 }
