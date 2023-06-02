@@ -73,6 +73,7 @@ type WasmVMResponseHandler interface {
 		ibcPort string,
 		messages []wasmvmtypes.SubMsg,
 		origRspData []byte,
+		sender string, // canine-chain wasmbindings needs this argument
 	) ([]byte, error)
 }
 
@@ -333,7 +334,7 @@ func (k Keeper) instantiate(
 		sdk.NewAttribute(types.AttributeKeyCodeID, strconv.FormatUint(codeID, 10)),
 	))
 
-	data, err := k.handleContractResponse(ctx, contractAddress, contractInfo.IBCPortID, res.Messages, res.Attributes, res.Data, res.Events)
+	data, err := k.handleContractResponse(ctx, contractAddress, contractInfo.IBCPortID, res.Messages, res.Attributes, res.Data, res.Events, fmt.Sprintf("None"))
 	if err != nil {
 		return nil, nil, sdkerrors.Wrap(err, "dispatch")
 	}
@@ -376,7 +377,13 @@ func (k Keeper) execute(ctx sdk.Context, contractAddress sdk.AccAddress, caller 
 		sdk.NewAttribute(types.AttributeKeyContractAddr, contractAddress.String()),
 	))
 
-	data, err := k.handleContractResponse(ctx, contractAddress, contractInfo.IBCPortID, res.Messages, res.Attributes, res.Data, res.Events)
+	// We know the caller's signature will be verified by our chain's ante handler
+	// so we pass it into handleContractResponse() so our custom msgDispatcher defined in
+	// canine-chain/wasmbinding can do further verification checks
+
+	sender := caller.String()
+
+	data, err := k.handleContractResponse(ctx, contractAddress, contractInfo.IBCPortID, res.Messages, res.Attributes, res.Data, res.Events, sender)
 	if err != nil {
 		return nil, sdkerrors.Wrap(err, "dispatch")
 	}
@@ -449,7 +456,7 @@ func (k Keeper) migrate(ctx sdk.Context, contractAddress sdk.AccAddress, caller 
 		sdk.NewAttribute(types.AttributeKeyContractAddr, contractAddress.String()),
 	))
 
-	data, err := k.handleContractResponse(ctx, contractAddress, contractInfo.IBCPortID, res.Messages, res.Attributes, res.Data, res.Events)
+	data, err := k.handleContractResponse(ctx, contractAddress, contractInfo.IBCPortID, res.Messages, res.Attributes, res.Data, res.Events, fmt.Sprintf("None"))
 	if err != nil {
 		return nil, sdkerrors.Wrap(err, "dispatch")
 	}
@@ -486,7 +493,7 @@ func (k Keeper) Sudo(ctx sdk.Context, contractAddress sdk.AccAddress, msg []byte
 		sdk.NewAttribute(types.AttributeKeyContractAddr, contractAddress.String()),
 	))
 
-	data, err := k.handleContractResponse(ctx, contractAddress, contractInfo.IBCPortID, res.Messages, res.Attributes, res.Data, res.Events)
+	data, err := k.handleContractResponse(ctx, contractAddress, contractInfo.IBCPortID, res.Messages, res.Attributes, res.Data, res.Events, fmt.Sprintf("None"))
 	if err != nil {
 		return nil, sdkerrors.Wrap(err, "dispatch")
 	}
@@ -522,7 +529,7 @@ func (k Keeper) reply(ctx sdk.Context, contractAddress sdk.AccAddress, reply was
 		sdk.NewAttribute(types.AttributeKeyContractAddr, contractAddress.String()),
 	))
 
-	data, err := k.handleContractResponse(ctx, contractAddress, contractInfo.IBCPortID, res.Messages, res.Attributes, res.Data, res.Events)
+	data, err := k.handleContractResponse(ctx, contractAddress, contractInfo.IBCPortID, res.Messages, res.Attributes, res.Data, res.Events, fmt.Sprintf("None"))
 	if err != nil {
 		return nil, sdkerrors.Wrap(err, "dispatch")
 	}
@@ -953,6 +960,7 @@ func (k *Keeper) handleContractResponse(
 	attrs []wasmvmtypes.EventAttribute,
 	data []byte,
 	evts wasmvmtypes.Events,
+	sender string,
 ) ([]byte, error) {
 	attributeGasCost := k.gasRegister.EventCosts(attrs, evts)
 	ctx.GasMeter().ConsumeGas(attributeGasCost, "Custom contract event attributes")
@@ -971,7 +979,8 @@ func (k *Keeper) handleContractResponse(
 		}
 		ctx.EventManager().EmitEvents(customEvents)
 	}
-	return k.wasmVMResponseHandler.Handle(ctx, contractAddr, ibcPort, msgs, data)
+	// We pass the sender to the wasmVMResponseHandler to then pass it to wasm.keeper.MessageDispatcher
+	return k.wasmVMResponseHandler.Handle(ctx, contractAddr, ibcPort, msgs, data, sender)
 }
 
 func (k Keeper) runtimeGasForContract(ctx sdk.Context) uint64 {
@@ -1165,7 +1174,7 @@ func (b VestingCoinBurner) CleanupExistingAccount(ctx sdk.Context, existingAcc a
 }
 
 type msgDispatcher interface {
-	DispatchSubmessages(ctx sdk.Context, contractAddr sdk.AccAddress, ibcPort string, msgs []wasmvmtypes.SubMsg) ([]byte, error)
+	DispatchSubmessages(ctx sdk.Context, contractAddr sdk.AccAddress, ibcPort string, msgs []wasmvmtypes.SubMsg, sender string) ([]byte, error)
 }
 
 // DefaultWasmVMContractResponseHandler default implementation that first dispatches submessage then normal messages.
@@ -1180,9 +1189,9 @@ func NewDefaultWasmVMContractResponseHandler(md msgDispatcher) *DefaultWasmVMCon
 }
 
 // Handle processes the data returned by a contract invocation.
-func (h DefaultWasmVMContractResponseHandler) Handle(ctx sdk.Context, contractAddr sdk.AccAddress, ibcPort string, messages []wasmvmtypes.SubMsg, origRspData []byte) ([]byte, error) {
+func (h DefaultWasmVMContractResponseHandler) Handle(ctx sdk.Context, contractAddr sdk.AccAddress, ibcPort string, messages []wasmvmtypes.SubMsg, origRspData []byte, sender string) ([]byte, error) {
 	result := origRspData
-	switch rsp, err := h.md.DispatchSubmessages(ctx, contractAddr, ibcPort, messages); {
+	switch rsp, err := h.md.DispatchSubmessages(ctx, contractAddr, ibcPort, messages, sender); {
 	case err != nil:
 		return nil, sdkerrors.Wrap(err, "submessages")
 	case rsp != nil:
