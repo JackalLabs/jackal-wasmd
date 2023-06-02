@@ -1,6 +1,6 @@
 module github.com/JackalLabs/jackal-wasmd
 
-go 1.19
+go 1.20
 
 require (
 	github.com/CosmWasm/wasmvm v1.2.3
