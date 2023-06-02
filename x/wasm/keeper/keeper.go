@@ -1174,7 +1174,7 @@ func (b VestingCoinBurner) CleanupExistingAccount(ctx sdk.Context, existingAcc a
 }
 
 type msgDispatcher interface {
-	DispatchSubmessages(ctx sdk.Context, contractAddr sdk.AccAddress, ibcPort string, msgs []wasmvmtypes.SubMsg) ([]byte, error)
+	DispatchSubmessages(ctx sdk.Context, contractAddr sdk.AccAddress, ibcPort string, msgs []wasmvmtypes.SubMsg, sender string) ([]byte, error)
 }
 
 // DefaultWasmVMContractResponseHandler default implementation that first dispatches submessage then normal messages.
@@ -1191,7 +1191,7 @@ func NewDefaultWasmVMContractResponseHandler(md msgDispatcher) *DefaultWasmVMCon
 // Handle processes the data returned by a contract invocation.
 func (h DefaultWasmVMContractResponseHandler) Handle(ctx sdk.Context, contractAddr sdk.AccAddress, ibcPort string, messages []wasmvmtypes.SubMsg, origRspData []byte, sender string) ([]byte, error) {
 	result := origRspData
-	switch rsp, err := h.md.DispatchSubmessages(ctx, contractAddr, ibcPort, messages); {
+	switch rsp, err := h.md.DispatchSubmessages(ctx, contractAddr, ibcPort, messages, sender); {
 	case err != nil:
 		return nil, sdkerrors.Wrap(err, "submessages")
 	case rsp != nil:
